@@ -171,6 +171,11 @@ def mine():
         }
         return jsonify(response), 200
 
+    else:
+        return jsonify({
+            'message': 'FAILURE: Incorrect proof',
+        }), 400
+
 # @app.route('/mine', methods=['GET'])
 # def mine():
 #     # Run the proof of work algorithm to get the next proof
