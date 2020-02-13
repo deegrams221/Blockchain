@@ -14,7 +14,7 @@ class Blockchain(object):
         self.current_transactions = []
 
         # Create the genesis block
-        self.new_block(previous_hash="I'm a teapot", proof=100)
+        self.new_block(previous_hash=1, proof=100)
 
     def new_block(self, proof, previous_hash=None):
         """
@@ -38,7 +38,7 @@ class Blockchain(object):
             'timestamp': time(),
             'transactions': self.current_transactions,
             'proof': proof,
-            'previous_hash': previous_hash or self.hash(self.chain[[-1]]), # this hashes the last block unless we've provided a previous hash
+            'previous_hash': previous_hash or self.hash(self.chain[-1]), # this hashes the last block unless we've provided a previous hash
         }
 
         # Reset the current list of transactions
@@ -69,9 +69,9 @@ class Blockchain(object):
         block_string = string_object.encode() # encode -> turns it into a byte string (gives a raw string)
 
         # TODO: Hash this string using sha256
-        raw_hash = hashlib.sha256(block_string)
+        hash_object = hashlib.sha256(block_string)
         # create a string of hexidecimal characters
-        hex_hash = raw_hash.hexdigest()
+        hash_string = hash_object.hexdigest()
 
         # By itself, the sha256 function returns the hash in a raw string
         # that will likely include escaped characters.
@@ -80,7 +80,7 @@ class Blockchain(object):
         # easier to work with and understand
 
         # TODO: Return the hashed block string in hexadecimal format
-        return hex_hash
+        return hash_string
 
     @property # decorator -> makes the function a property
     def last_block(self):
@@ -124,7 +124,7 @@ class Blockchain(object):
         guess_hash = hashlib.sha256(guess).hexdigest()
 
         # Change `valid_proof` to require *6* leading zeroes.
-        return guess_hash[:6] == "000000"
+        return guess_hash[:6] == '0' * 6
 
 
 # Instantiate our Node
@@ -135,8 +135,8 @@ node_identifier = str(uuid4()).replace('-', '')
 
 # Instantiate the Blockchain
 blockchain = Blockchain()
-print(blockchain.chain)
-print(blockchain.hash(blockchain.last_block))
+# print(blockchain.chain)
+# print(blockchain.hash(blockchain.last_block))
 
 
 #  Modify the `mine` endpoint to instead receive and validate or reject a new proof sent by a client.
@@ -150,31 +150,30 @@ print(blockchain.hash(blockchain.last_block))
 def mine():
     # pull the data out of the POST
     data = request.get_json()
-    string_object = json.dumps(blockchain.last_block, sort_keys=True)
+    # print(data)
+    # string_object = json.dumps(blockchain.last_block, sort_keys=True)
 
     # Check that 'proof', and 'id' are present
-    req_keys = ['proof', 'id']
-    if not all(keys in data for keys in req_keys):
-        response = {
-            'message': 'FAILURE: Missing keys',
-        }
-        return jsonify(response), 400
+    if data.get('id') and data.get('proof'):
+        string_object = json.dumps(blockchain.last_block, sort_keys=True)
+        if blockchain.valid_proof(string_object, data['proof']):
+            previous_hash = blockchain.hash(blockchain.last_block)
+            block = blockchain.new_block(data['proof'], previous_hash)
 
-    if blockchain.valid_proof(string_object, data['proof']):
-        previous_hash = blockchain.hash(blockchain.last_block)
-        block = blockchain.new_block(data['proof'], previous_hash)
-
-        response = {
-            'message': 'SUCCESS: New block created',
-            'proof': block['proof'],
-            'previous_hash': block['previous_hash']
-        }
-        return jsonify(response), 200
-
+            response = {
+                'message': 'SUCCESS: New Block Forged',
+                'index': block['index'],
+                'transactions': block['transactions'],
+                'proof': block['proof'],
+                'previous_hash': block['previous_hash']
+            }
+            return jsonify(response), 200
+        else:
+            response = {'message': 'FAILURE: Proof is invalid or already submitted'}
     else:
-        return jsonify({
-            'message': 'FAILURE: Incorrect proof',
-        }), 400
+        response = {'message': 'FAILURE: Must submit proof and id'}
+
+    return jsonify(response), 400
 
 # @app.route('/mine', methods=['GET'])
 # def mine():

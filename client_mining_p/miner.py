@@ -4,7 +4,7 @@ import requests
 import sys
 import json
 
-
+import time # for stretch
 
 def proof_of_work(block):
     """
@@ -17,9 +17,18 @@ def proof_of_work(block):
     # pass
     string_object = json.dumps(block, sort_keys=True)
     proof = 0
-    while self.valid_proof(block_string, proof) is False:
+    # Stretch: Add a timer to keep track of how long it takes to find a proof (start)
+    start_time = time.time()
+    print('Mining started')
+
+    while valid_proof(string_object, proof) is False:
         # increment proof
         proof += 1
+    # Stretch: Add a timer to keep track of how long it takes to find a proof (end)
+    end_time = time.time()
+    print('Mining finished')
+    print(f'Runtime: {end_time - start_time} seconds') # print the runtime
+
     return proof
 
 
@@ -37,7 +46,7 @@ def valid_proof(block_string, proof):
     # pass
     guess = f'{block_string}{proof}'.encode()
     guess_hash = hashlib.sha256(guess).hexdigest()
-    return guess_hash[:1] == '0' * 1
+    return guess_hash[:6] == '0' * 6
 
 
 if __name__ == '__main__':
@@ -75,12 +84,20 @@ if __name__ == '__main__':
         post_data = {"proof": new_proof, "id": id}
 
         r = requests.post(url=node + "/mine", json=post_data)
-        data = r.json()
+
+        # (Stretch) Handle non-json responses sent by the server in the event of an error, without crashing the miner
+        try:
+            data = r.json()
+        except ValueError:
+            print("Error: Non-json response")
+            print("Response returned:")
+            print(r)
+            break
 
         # pass
 
         # TODO: If the server responds with a 'message' 'New Block Forged'
-        if data['message'] == 'New Block Forged':
+        if data['message'] == 'SUCCESS: New Block Forged':
             print(data['message'])
             # add 1 to the number of coins mined and print
             coins += 1
