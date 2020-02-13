@@ -150,12 +150,14 @@ blockchain = Blockchain()
 def mine():
     # pull the data out of the POST
     data = request.get_json()
+    req_prop = ['id', 'proof']
     # print(data)
     # string_object = json.dumps(blockchain.last_block, sort_keys=True)
 
     # Check that 'proof', and 'id' are present
-    if data.get('id') and data.get('proof'):
+    if all(keys in data for keys in req_prop):
         string_object = json.dumps(blockchain.last_block, sort_keys=True)
+
         if blockchain.valid_proof(string_object, data['proof']):
             previous_hash = blockchain.hash(blockchain.last_block)
             block = blockchain.new_block(data['proof'], previous_hash)
