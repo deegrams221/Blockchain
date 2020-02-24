@@ -1,9 +1,9 @@
-import hashlib
+import hashlib # hash library -> SHA-256 hash
 import json
 from time import time
-from uuid import uuid4
+from uuid import uuid4 # uuid -> universally unique identifier
 
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request # flask is for backend
 
 
 class Blockchain(object):
@@ -12,7 +12,7 @@ class Blockchain(object):
         self.current_transactions = []
 
         # Create the genesis block
-        self.new_block(previous_hash=1, proof=100)
+        self.new_block(previous_hash="I'm a teapot", proof=100)
 
     def new_block(self, proof, previous_hash=None):
         """
@@ -32,12 +32,19 @@ class Blockchain(object):
 
         block = {
             # TODO
+            'index': len(self.chain) + 1,
+            'timestamp': time(),
+            'transactions': self.current_transactions,
+            'proof': proof,
+            'previous_hash': previous_hash or self.hash(self.chain[[-1]]), # this hashes the last block unless we've provided a previous hash
         }
 
         # Reset the current list of transactions
-        # Append the chain to the block
+        self.current_transactions = []
+        # Append the block to the chain
+        self.chain.append(block)
         # Return the new block
-        pass
+        return block
 
     def hash(self, block):
         """
@@ -56,8 +63,13 @@ class Blockchain(object):
         # or we'll have inconsistent hashes
 
         # TODO: Create the block_string
+        string_object = json.dumps(block, sort_keys=True) # stringifies json
+        block_string = string_object.encode() # encode -> turns it into a byte string (gives a raw string)
 
         # TODO: Hash this string using sha256
+        raw_hash = hashlib.sha256(block_string)
+        # create a string of hexidecimal characters
+        hex_hash = raw_hash.hexdigest()
 
         # By itself, the sha256 function returns the hash in a raw string
         # that will likely include escaped characters.
@@ -66,9 +78,9 @@ class Blockchain(object):
         # easier to work with and understand
 
         # TODO: Return the hashed block string in hexadecimal format
-        pass
+        return hex_hash
 
-    @property
+    @property # decorator -> makes the function a property
     def last_block(self):
         return self.chain[-1]
 
@@ -81,10 +93,16 @@ class Blockchain(object):
         :return: A valid proof for the provided block
         """
         # TODO
-        pass
-        # return proof
+        # stringify the block
+        block_string = json.dumps(block, sort_keys=True)
+        # find proof
+        proof = 0
+        while self.valid_proof(block_string, proof) is False:
+            # increment proof
+            proof += 1
+        return proof
 
-    @staticmethod
+    @staticmethod # decorator -> run it without an instance - dont need to substantiate a blockchain
     def valid_proof(block_string, proof):
         """
         Validates the Proof:  Does hash(block_string, proof) contain 3
@@ -97,8 +115,13 @@ class Blockchain(object):
         :return: True if the resulting hash is a valid proof, False otherwise
         """
         # TODO
-        pass
-        # return True or False
+        # use SHA-256 hash for 2 completely distinct and seperate tasks: 1. validate the chain, 2. proof of work
+        # get the hash in one number
+        guess = f'{block_string}{proof}'.encode()
+        guess_hash = hashlib.sha256(guess).hexdigest()
+
+        # if the first 3 letters is equal to '000' then return
+        return guess_hash[:3] == "000"
 
 
 # Instantiate our Node
@@ -109,16 +132,23 @@ node_identifier = str(uuid4()).replace('-', '')
 
 # Instantiate the Blockchain
 blockchain = Blockchain()
-
+print(blockchain.chain)
+print(blockchain.hash(blockchain.last_block))
 
 @app.route('/mine', methods=['GET'])
 def mine():
     # Run the proof of work algorithm to get the next proof
+    proof = blockchain.proof_of_work(blockchain.last_block)
 
     # Forge the new Block by adding it to the chain with the proof
+    # get previous hash
+    previous_hash = blockchain.hash(blockchain.last_block)
+    new_block = blockchain.new_block(proof, previous_hash) # save in variable new_block
 
     response = {
         # TODO: Send a JSON response with the new block
+        # return variable new_block
+        'block': new_block
     }
 
     return jsonify(response), 200
@@ -128,6 +158,8 @@ def mine():
 def full_chain():
     response = {
         # TODO: Return the chain and its current length
+        'chain': blockchain.chain,
+        'length': len(blockchain.chain),
     }
     return jsonify(response), 200
 

@@ -1,0 +1,27 @@
+.App {
+  text-align: center;
+  margin-top: 10rem;
+  margin-bottom: 3rem;
+}
+
+.balance {
+  font-size: 1.5rem;
+  margin: 1rem auto;
+}
+
+Table {
+  max-width: 75%;
+  margin: 0 auto;
+}
+
+h3 {
+  margin: 0 auto;
+  padding: 0.5em;
+  border-top: 1px dashed black;
+  max-width: 75%;
+}
+
+.mb-3 {
+  max-width: 65%;
+  margin: 0 auto;
+}
